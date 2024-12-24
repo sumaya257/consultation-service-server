@@ -22,6 +22,18 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
+      //add-service data post from client side
+      app.post('/add-service',async(req,res)=>{
+            const addService = req.body
+            const result = await services.insertOne(addService)
+            res.send(result)
+      })
+
+
+
+
+
+
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     // Send a ping to confirm a successful connection
