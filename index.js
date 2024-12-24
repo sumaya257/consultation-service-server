@@ -78,7 +78,17 @@ async function run() {
         
 
 
-      
+        // Delete a service
+        app.delete('/services/:id', async (req, res) => {
+            try {
+                const id = req.params.id;
+                const result = await services.deleteOne({ _id: new ObjectId(id) });
+                res.send(result);
+            } catch (error) {
+                console.error('Error deleting service:', error);
+                res.status(500).send('Internal Server Error');
+            }
+        });
 
 
 
