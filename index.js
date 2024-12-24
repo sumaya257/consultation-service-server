@@ -22,6 +22,11 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
+
+       // Access the services collection in the database
+       const database = client.db("addService"); 
+       const services = database.collection("services"); // 
+   
       //add-service data post from client side
       app.post('/add-service',async(req,res)=>{
             const addService = req.body
@@ -29,6 +34,17 @@ async function run() {
             res.send(result)
       })
 
+    //get the services
+    app.get('/services',async(req,res)=>{
+        const email = req.query.email
+        let query = {}
+        if(email){
+            query = {serviceProviderEmail:email}
+        }
+        const cursor = services.find(query)
+        const result = await cursor.toArray()
+        res.send(result)
+    })
 
 
 
