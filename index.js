@@ -28,8 +28,8 @@ async function run() {
         const services = database.collection("services"); // 
         const purchasedItems = database.collection('purchasedItems')
 
-        //add-service data post from client side
-        app.post('/add-service', async (req, res) => {
+         //add-service data post from client side
+         app.post('/services', async (req, res) => {
             const addService = req.body
             const result = await services.insertOne(addService)
             res.send(result)
@@ -47,11 +47,25 @@ async function run() {
             res.send(result)
         })
 
-          //add-purchasedItems data post from client side
-          app.post('/purchased-items',async(req,res)=>{
-            const addPurchasedItems = req.body
-            const result = await purchasedItems.insertOne(addPurchasedItems)
+
+        //add-purchasedItems data post from client side
+        app.post('/purchased-items',async(req,res)=>{
+        const addPurchasedItems = req.body
+        const result = await purchasedItems.insertOne(addPurchasedItems)
+        res.send(result)
+        })
+
+        //get the purchaseditems
+        app.get('/purchased-items',async(req,res)=>{
+            const email = req.query.email
+            let query = {}
+            if (email) {
+                query = { currentUserEmail: email }
+            }
+            const cursor = services.find(query)
+            const result = await cursor.toArray()
             res.send(result)
+
         })
 
         // Update a service
