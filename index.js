@@ -62,7 +62,21 @@ async function run() {
             if (email) {
                 query = { currentUserEmail: email }
             }
-            const cursor = services.find(query)
+            const cursor = purchasedItems.find(query)
+            const result = await cursor.toArray()
+            res.send(result)
+
+        })
+
+        //get the services-to-do-items
+        app.get('/servicestodo-items',async(req,res)=>{
+            const email = req.query.email
+            let query = {}
+            if (email) {
+                query = { 
+                    serviceProviderEmail: email }
+            }
+            const cursor = purchasedItems.find(query)
             const result = await cursor.toArray()
             res.send(result)
 
