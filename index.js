@@ -26,6 +26,7 @@ async function run() {
         // Access the services collection in the database
         const database = client.db("addService");
         const services = database.collection("services"); // 
+        const purchasedItems = database.collection('purchasedItems')
 
         //add-service data post from client side
         app.post('/add-service', async (req, res) => {
@@ -43,6 +44,13 @@ async function run() {
             }
             const cursor = services.find(query)
             const result = await cursor.toArray()
+            res.send(result)
+        })
+
+          //add-purchasedItems data post from client side
+          app.post('/purchased-items',async(req,res)=>{
+            const addPurchasedItems = req.body
+            const result = await purchasedItems.insertOne(addPurchasedItems)
             res.send(result)
         })
 
