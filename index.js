@@ -1,12 +1,18 @@
 const express = require('express')
 const cors = require('cors')
+const jwt = require('jsonwebtoken')
+const cookieParser = require('cookie-parser')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express()
 require('dotenv').config()
 const port = process.env.PORT || 5000
 
-app.use(cors())
+app.use(cors({
+    origin: ['http://localhost:5173'],
+    credentials: true
+}))
 app.use(express.json())
+app.use(cookieParser())
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ju1bs.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -28,8 +34,21 @@ async function run() {
         const services = database.collection("services"); // 
         const purchasedItems = database.collection('purchasedItems')
 
-         //add-service data post from client side
-         app.post('/services', async (req, res) => {
+        //creation of jwt token
+        app.post('/jwt',(req,res)=>{
+           const user = req.body
+           const token = jwt.sign(user,process.env.ACCESS_TOKEN_SECRET,{expiresIn:'5h'})
+           //set token to the cookie of response
+           res.cookie('token',token,{
+            httpOnly:true,
+            secure:false
+
+           })
+           .send({success:true})
+        })
+
+        //add-service data post from client side
+        app.post('/services', async (req, res) => {
             const addService = req.body
             const result = await services.insertOne(addService)
             res.send(result)
@@ -49,14 +68,14 @@ async function run() {
 
 
         //add-purchasedItems data post from client side
-        app.post('/purchased-items',async(req,res)=>{
-        const addPurchasedItems = req.body
-        const result = await purchasedItems.insertOne(addPurchasedItems)
-        res.send(result)
+        app.post('/purchased-items', async (req, res) => {
+            const addPurchasedItems = req.body
+            const result = await purchasedItems.insertOne(addPurchasedItems)
+            res.send(result)
         })
 
         //get the purchaseditems
-        app.get('/purchased-items',async(req,res)=>{
+        app.get('/purchased-items', async (req, res) => {
             const email = req.query.email
             let query = {}
             if (email) {
@@ -69,12 +88,13 @@ async function run() {
         })
 
         //get the services-to-do-items
-        app.get('/servicestodo-items',async(req,res)=>{
+        app.get('/servicestodo-items', async (req, res) => {
             const email = req.query.email
             let query = {}
             if (email) {
-                query = { 
-                    serviceProviderEmail: email }
+                query = {
+                    serviceProviderEmail: email
+                }
             }
             const cursor = purchasedItems.find(query)
             const result = await cursor.toArray()
@@ -85,33 +105,50 @@ async function run() {
         // Update a service
         app.put('/services/:id', async (req, res) => {
             try {
-                const id = req.params.id;               
+                const id = req.params.id;
                 // 1. Extract the ID from the route parameter
-                const updatedService = req.body;       
+                const updatedService = req.body;
                 // 2. Extract the updated data from the request body
-        
-                delete updatedService._id;             
+
+                delete updatedService._id;
                 // 3. Remove the `_id` field from the update object (MongoDB doesn't allow updating the `_id` field)
-        
-                const filter = { _id: new ObjectId(id) }; 
+
+                const filter = { _id: new ObjectId(id) };
                 // 4. Create a filter to locate the service using its `_id`
                 const updateDoc = {
-                    $set: updatedService,             
-                     // 5. Use the `$set` operator to specify the fields to be updated
+                    $set: updatedService,
+                    // 5. Use the `$set` operator to specify the fields to be updated
                 };
-        
-                const result = await services.updateOne(filter, updateDoc); 
+
+                const result = await services.updateOne(filter, updateDoc);
                 // 6. Perform the update operation in the MongoDB collection
-                res.send(result);                     
+                res.send(result);
                 // 7. Send the update result back to the client
             } catch (error) {
-                console.error('Error updating service:', error); 
+                console.error('Error updating service:', error);
                 // 8. Log any errors for debugging
-                res.status(500).send('Internal Server Error');   
+                res.status(500).send('Internal Server Error');
                 // 9. Send an error response in case of failure
             }
         });
-        
+
+        // Update  status endpoint
+        app.patch('/servicestodo-items/:id', async (req, res) => {
+            const  id  = req.params.id;
+            const data = req.body;
+            const filter = { _id: new ObjectId(id) };
+             //Create a filter to locate the service using its `_id`
+
+             const updateDoc = {
+                $set: {
+                    status:data.serviceStatus,
+                }
+                //Use the `$set` operator to specify the fields to be updated
+            };
+            const result = await purchasedItems.updateOne(filter, updateDoc);
+            res.send(result);
+        });
+
 
 
         // Delete a service
