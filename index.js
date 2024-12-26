@@ -14,6 +14,23 @@ app.use(cors({
 app.use(express.json())
 app.use(cookieParser())
 
+const verifyToken = (req,res,next)=>{
+    const token = req.cookies?.token;
+    if(!token){
+        return res.status(401).send({message:'unauthorized access'})
+    }
+    //verify token
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET,(err,decoded)=>{
+        if(err){
+            return res.status(401).send({message:'unauthorized access'})
+        }
+        req.user = decoded
+
+        next()
+    })
+  
+}
+
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ju1bs.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -47,6 +64,18 @@ async function run() {
            .send({success:true})
         })
 
+        // Logout route to clear the HTTP-only cookie
+app.post('/logout', (req, res) => {
+    res.clearCookie('token', {
+      httpOnly: true, // Ensures cookie is HTTP-only
+      secure: false  // Use 'true' in production if using HTTPS
+    })
+    .send({success:true})
+  });
+  
+
+
+
         //add-service data post from client side
         app.post('/services', async (req, res) => {
             const addService = req.body
@@ -55,12 +84,22 @@ async function run() {
         })
 
         //get the services
-        app.get('/services', async (req, res) => {
+        // GET: Fetch all movies
+       app.get('/services', async (req, res) => {
+        const cursor = services.find();
+        const result = await cursor.toArray();
+        res.send(result);
+      });
+
+         //manage the services
+         app.get('/manage-services',verifyToken,async (req, res) => {
             const email = req.query.email
-            let query = {}
-            if (email) {
-                query = { serviceProviderEmail: email }
+            if(req.user.email!==req.query.email){
+                return res.status(403).send({message:'forbidden access'})
             }
+            
+            query = { serviceProviderEmail: email }
+        
             const cursor = services.find(query)
             const result = await cursor.toArray()
             res.send(result)
@@ -74,7 +113,7 @@ async function run() {
             res.send(result)
         })
 
-        //get the purchaseditems
+        //get the purchased-items
         app.get('/purchased-items', async (req, res) => {
             const email = req.query.email
             let query = {}
