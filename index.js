@@ -14,21 +14,21 @@ app.use(cors({
 app.use(express.json())
 app.use(cookieParser())
 
-const verifyToken = (req,res,next)=>{
+const verifyToken = (req, res, next) => {
     const token = req.cookies?.token;
-    if(!token){
-        return res.status(401).send({message:'unauthorized access'})
+    if (!token) {
+        return res.status(401).send({ message: 'unauthorized access' })
     }
     //verify token
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET,(err,decoded)=>{
-        if(err){
-            return res.status(401).send({message:'unauthorized access'})
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(401).send({ message: 'unauthorized access' })
         }
         req.user = decoded
 
         next()
     })
-  
+
 }
 
 
@@ -52,27 +52,27 @@ async function run() {
         const purchasedItems = database.collection('purchasedItems')
 
         //creation of jwt token
-        app.post('/jwt',(req,res)=>{
-           const user = req.body
-           const token = jwt.sign(user,process.env.ACCESS_TOKEN_SECRET,{expiresIn:'5h'})
-           //set token to the cookie of response
-           res.cookie('token',token,{
-            httpOnly:true,
-            secure:false
+        app.post('/jwt', (req, res) => {
+            const user = req.body
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '5h' })
+            //set token to the cookie of response
+            res.cookie('token', token, {
+                httpOnly: true,
+                secure: false
 
-           })
-           .send({success:true})
+            })
+                .send({ success: true })
         })
 
         // Logout route to clear the HTTP-only cookie
-app.post('/logout', (req, res) => {
-    res.clearCookie('token', {
-      httpOnly: true, // Ensures cookie is HTTP-only
-      secure: false  // Use 'true' in production if using HTTPS
-    })
-    .send({success:true})
-  });
-  
+        app.post('/logout', (req, res) => {
+            res.clearCookie('token', {
+                httpOnly: true, // Ensures cookie is HTTP-only
+                secure: false  // Use 'true' in production if using HTTPS
+            })
+                .send({ success: true })
+        });
+
 
 
 
@@ -84,22 +84,30 @@ app.post('/logout', (req, res) => {
         })
 
         //get the services
-        // GET: Fetch all movies
-       app.get('/services', async (req, res) => {
-        const cursor = services.find();
-        const result = await cursor.toArray();
-        res.send(result);
-      });
+        app.get('/services', async (req, res) => {
+            const cursor = services.find();
+            const result = await cursor.toArray();
+            res.send(result);
+        });
 
-         //manage the services
-         app.get('/manage-services',verifyToken,async (req, res) => {
+        //add-service data post from client side
+        app.post('/add-services',verifyToken, async (req, res) => {
+            const addService = req.body
+            const result = await services.insertOne(addService)
+            res.send(result)
+        })
+
+
+
+        //manage the services
+        app.get('/manage-services', verifyToken, async (req, res) => {
             const email = req.query.email
-            if(req.user.email!==req.query.email){
-                return res.status(403).send({message:'forbidden access'})
+            if (req.user.email !== req.query.email) {
+                return res.status(403).send({ message: 'forbidden access' })
             }
-            
+
             query = { serviceProviderEmail: email }
-        
+
             const cursor = services.find(query)
             const result = await cursor.toArray()
             res.send(result)
@@ -114,7 +122,7 @@ app.post('/logout', (req, res) => {
         })
 
         //get the purchased-items
-        app.get('/purchased-items', async (req, res) => {
+        app.get('/purchased-items',verifyToken, async (req, res) => {
             const email = req.query.email
             let query = {}
             if (email) {
@@ -127,7 +135,7 @@ app.post('/logout', (req, res) => {
         })
 
         //get the services-to-do-items
-        app.get('/servicestodo-items', async (req, res) => {
+        app.get('/servicestodo-items',verifyToken, async (req, res) => {
             const email = req.query.email
             let query = {}
             if (email) {
@@ -173,14 +181,14 @@ app.post('/logout', (req, res) => {
 
         // Update  status endpoint
         app.patch('/servicestodo-items/:id', async (req, res) => {
-            const  id  = req.params.id;
+            const id = req.params.id;
             const data = req.body;
             const filter = { _id: new ObjectId(id) };
-             //Create a filter to locate the service using its `_id`
+            //Create a filter to locate the service using its `_id`
 
-             const updateDoc = {
+            const updateDoc = {
                 $set: {
-                    status:data.serviceStatus,
+                    status: data.serviceStatus,
                 }
                 //Use the `$set` operator to specify the fields to be updated
             };
